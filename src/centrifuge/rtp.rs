@@ -41,11 +41,12 @@ pub fn extract(remaining: &[u8]) -> Result<structs::rtp::RTP, CentrifugeError> {
         }
         return Ok(structs::rtp::RTP::Rtp(header, remaining[payload_offset..].to_owned()));
     } else if rtp_payload >= 64 && rtp_payload < 96 {
+        let payload = remaining[1];
         let header = RtcpHeader {
             rc: remaining[0] & 0x1f,
             padding: (remaining[0] >> 5) & 1,
             version: rtp_version,
-            payload: rtp_payload,
+            payload,
             length: u16::from_be_bytes(remaining[2..4].try_into().unwrap()),
             ssrc: u32::from_be_bytes(remaining[4..8].try_into().unwrap()),
         };

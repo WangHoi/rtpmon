@@ -12,6 +12,7 @@ use crate::structs::ipv4;
 use crate::structs::ipv6;
 use crate::structs::udp;
 use crate::structs::tcp;
+use crate::structs::rtp;
 use crate::structs::raw::Raw;
 use crate::structs::prelude::*;
 use crate::structs::NoiseLevel;
@@ -173,6 +174,17 @@ impl Format {
 
         use crate::structs::udp::UDP::*;
         match udp {
+            Rtp(rtp) => {
+                match rtp {
+                    rtp::RTP::Rtp(hdr, _) => {
+                        out.push_str(&format!("[rtp   ] pt={} ssrc={} seq={}", hdr.payload, hdr.ssrc, hdr.seqnum));
+                    },
+                    rtp::RTP::Rtcp(hdr, _) => {
+                        out.push_str(&format!("[rtcp  ] pt={} ssrc={}", hdr.payload, hdr.ssrc));
+                    },
+                }
+                Some(Blue)
+            },
             Text(text) => {
                 out.push_str(&format!("[text] {:?}", text));
                 Some(Red)
@@ -283,6 +295,9 @@ impl Format {
     fn print_debugging_udp(&self, udp: udp::UDP) -> String {
         use crate::structs::udp::UDP::*;
         match udp {
+            Rtp(rtp) => {
+                self.colorify(Blue, format!("remaining: {:?}", rtp))
+            },
             Text(text) => {
                 self.colorify(Blue, format!("remaining: {:?}", text))
             },

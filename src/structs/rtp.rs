@@ -30,6 +30,6 @@ pub enum RTP {
 
 impl RTP {
     pub fn noise_level(&self) -> NoiseLevel {
-        NoiseLevel::One
+        NoiseLevel::Zero
     }
 }

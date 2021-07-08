@@ -1,4 +1,4 @@
-mod connection;
+pub mod connection;
 
 use crate::structs::{ether::Ether, ip::IPHeader, ipv4::IPv4, raw::Raw, udp::UDP, rtp::RTP};
 use nom::bitvec::view::AsBits;
@@ -20,7 +20,7 @@ pub enum FlowDirection {
     Egress,
 }
 pub struct FlowPacket {
-    ts: libc::timeval,
+    ts: SystemTime,
     payload: FlowPayload,
 }
 pub struct FlowHeader {
@@ -35,12 +35,12 @@ pub enum FlowPayload {
     Rtp(RTP),
 }
 pub struct FlowData {
-    ts: libc::timeval,
+    ts: SystemTime,
     header: FlowHeader,
     payload: FlowPayload,
 }
 
-pub fn get_flow_data(local_ip: &Ipv4Addr, ts: libc::timeval, raw: &Raw) -> Option<FlowData> {
+pub fn get_flow_data(local_ip: &Ipv4Addr, ts: SystemTime, raw: &Raw) -> Option<FlowData> {
     if let Raw::Ether(_, ref ether) = raw {
         if let Ether::IPv4(ref v4_hdr, ref v4) = ether {
             if let IPv4::UDP(ref udp_hdr, ref udp) = v4 {

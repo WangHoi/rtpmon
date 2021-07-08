@@ -4,13 +4,13 @@ use super::{FlowHeader, FlowData, FlowPacket};
 use std::{collections::HashMap, net::SocketAddr};
 
 pub struct ConnectionHeader {
-    local: SocketAddr,
-    remote: SocketAddr,
+    pub local: SocketAddr,
+    pub remote: SocketAddr,
 }
 pub struct Connection {
-    header: ConnectionHeader,
-    ingress_pkts: Vec<FlowPacket>,
-    egress_pkts: Vec<FlowPacket>,
+    pub header: ConnectionHeader,
+    pub ingress_pkts: Vec<FlowPacket>,
+    pub egress_pkts: Vec<FlowPacket>,
 }
 pub struct ConnectionMap {
     // key: remote

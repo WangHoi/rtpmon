@@ -3,5 +3,16 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"search.exclude": {
+			"target/**": true
+		},
+		"files.exclude": {
+			"target/**": true
+		},
+		"files.watcherExclude": {
+			"target/**": true
+		}
+	}
 }

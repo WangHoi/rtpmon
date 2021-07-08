@@ -16,6 +16,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
 use structopt::StructOpt;
+use chrono::{DateTime, Local, Utc};
 
 fn main() -> Result<()> {
     env_logger::init_from_env(Env::default().default_filter_or("sniffglue=warn"));
@@ -84,7 +85,7 @@ fn main() -> Result<()> {
             };
 
             if let Ok(Some(packet)) = packet {
-                let ts = SystemTime::now()
+                let ts = SystemTime::UNIX_EPOCH
                     + Duration::new(packet.ts.tv_sec as _, (packet.ts.tv_usec * 1000) as _);
                 let packet = centrifuge::parse(&datalink, &packet.data);
                 if filter.matches(&packet) {
@@ -105,6 +106,8 @@ fn main() -> Result<()> {
         if let Some(data) = flow::get_flow_data(&local_ip, ts, &packet) {
             conn_map.add(data);
         }
+        let datetime = DateTime::<Local>::from(ts);
+        print!("{} ", datetime);
         format.print(packet);
     }
     println!("{:-^80}", "conn");

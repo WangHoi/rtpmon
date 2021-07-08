@@ -177,7 +177,7 @@ impl Format {
             Rtp(rtp) => {
                 match rtp {
                     rtp::RTP::Rtp(hdr, _) => {
-                        out.push_str(&format!("[rtp   ] pt={} ssrc={} seq={}", hdr.payload, hdr.ssrc, hdr.seqnum));
+                        out.push_str(&format!("[rtp   ] pt={} ssrc={} seq={} time={}", hdr.payload, hdr.ssrc, hdr.seqnum, hdr.timestamp));
                     },
                     rtp::RTP::Rtcp(hdr, _) => {
                         out.push_str(&format!("[rtcp  ] pt={} ssrc={}", hdr.payload, hdr.ssrc));

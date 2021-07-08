@@ -5,6 +5,7 @@ mod structs;
 mod link;
 mod errors;
 mod centrifuge;
+mod flow;
 
 use errors::*;
 use crate::cli::Args;

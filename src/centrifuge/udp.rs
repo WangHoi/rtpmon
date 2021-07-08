@@ -1,7 +1,7 @@
 use std::str::from_utf8;
 
 use pktparse::udp::{self, UdpHeader};
-
+use crate::centrifuge::rtp;
 use crate::structs::CentrifugeError;
 use crate::structs::udp::UDP;
 
@@ -22,6 +22,9 @@ pub fn parse(remaining: &[u8]) -> Result<(udp::UdpHeader, UDP), CentrifugeError>
 pub fn extract(udp_hdr: &UdpHeader, remaining: &[u8]) -> Result<UDP, CentrifugeError> {
     if remaining.is_empty() {
         Ok(UDP::Binary(Vec::new()))
+    } else if (7076..=7079).contains(&udp_hdr.dest_port) || (7076..=7079).contains(&udp_hdr.source_port) {
+        let rtp = rtp::extract(remaining)?;
+        Ok(UDP::Rtp(rtp))
     } else {
         Err(CentrifugeError::UnknownProtocol)
     }

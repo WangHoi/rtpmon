@@ -88,9 +88,11 @@ impl Cap {
                 let packet = unsafe { packet.assume_init() };
 
                 use std::slice;
+                let ts = unsafe { (*header).ts };
                 let packet = unsafe { slice::from_raw_parts(packet, (*header).caplen as _) };
 
                 Ok(Some(Packet {
+                    ts,
                     data: packet.to_vec(),
                 }))
             },
@@ -108,6 +110,7 @@ impl Drop for Cap {
 }
 
 pub struct Packet {
+    pub ts: libc::timeval,
     pub data: Vec<u8>,
 }
 

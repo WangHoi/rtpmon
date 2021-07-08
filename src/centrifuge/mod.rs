@@ -11,6 +11,7 @@ use crate::link::DataLink;
 pub mod arp;
 pub mod udp;
 pub mod tcp;
+pub mod rtp;
 
 #[inline]
 pub fn parse(link: &DataLink, data: &[u8]) -> raw::Raw {

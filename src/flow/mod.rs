@@ -1,4 +1,5 @@
 pub mod connection;
+pub mod call;
 
 use crate::structs::{ether::Ether, ip::IPHeader, ipv4::IPv4, raw::Raw, udp::UDP, rtp::RTP, rtcp::RTCP};
 use nom::bitvec::view::AsBits;
@@ -20,8 +21,8 @@ pub enum FlowDirection {
     Egress,
 }
 pub struct FlowPacket {
-    ts: SystemTime,
-    payload: FlowPayload,
+    pub ts: SystemTime,
+    pub payload: FlowPayload,
 }
 pub struct FlowHeader {
     ftype: FlowType,

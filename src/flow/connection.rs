@@ -1,9 +1,10 @@
+use log;
 use crate::flow::FlowDirection;
-
-use super::{FlowHeader, FlowData, FlowPacket};
-use std::{collections::HashMap, net::SocketAddr};
+use super::{FlowData, FlowHeader, FlowPacket, FlowType};
+use std::{collections::HashMap, net::SocketAddr, time::SystemTime};
 
 pub struct ConnectionHeader {
+    pub ftype: FlowType,
     pub local: SocketAddr,
     pub remote: SocketAddr,
 }
@@ -11,6 +12,28 @@ pub struct Connection {
     pub header: ConnectionHeader,
     pub ingress_pkts: Vec<FlowPacket>,
     pub egress_pkts: Vec<FlowPacket>,
+}
+
+impl Connection {
+    pub fn valid(&self) -> bool {
+        !self.ingress_pkts.is_empty() && !self.egress_pkts.is_empty()
+    }
+    pub fn ingress_tsrange(&self) -> Option<(SystemTime, SystemTime)> {
+        if let Some(p1) = self.ingress_pkts.first() {
+            if let Some(p2) = self.ingress_pkts.last() {
+                return Some((p1.ts, p2.ts));
+            }
+        }
+        None
+    }
+    pub fn egress_tsrange(&self) -> Option<(SystemTime, SystemTime)> {
+        if let Some(p1) = self.egress_pkts.first() {
+            if let Some(p2) = self.egress_pkts.last() {
+                return Some((p1.ts, p2.ts));
+            }
+        }
+        None
+    }
 }
 pub struct ConnectionMap {
     // key: remote
@@ -26,6 +49,10 @@ impl ConnectionMap {
     pub fn add(&mut self, d: FlowData) {
         match self.map.get_mut(&d.header.remote) {
             Some(conn) => {
+                if conn.header.ftype != d.header.ftype {
+                    log::error!("FlowType {:?} and {:?} mismatch.", conn.header.ftype, d.header.ftype);
+                    return;
+                }
                 if d.header.dir == FlowDirection::Ingress {
                     conn.ingress_pkts.push(FlowPacket {
                         ts: d.ts,
@@ -40,6 +67,7 @@ impl ConnectionMap {
             },
             None => {
                 let header = ConnectionHeader {
+                    ftype: d.header.ftype,
                     local: d.header.local,
                     remote: d.header.remote,
                 };

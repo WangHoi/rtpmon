@@ -101,25 +101,51 @@ fn main() -> Result<()> {
 
     let mut conn_map = flow::connection::ConnectionMap::new();
     let format = config.format();
-    let local_ip = "192.168.8.128".parse().unwrap();
+    let local_ip = "192.168.6.51".parse().unwrap();
     for (ts, packet) in rx.iter() {
         if let Some(data) = flow::get_flow_data(&local_ip, ts, &packet) {
             conn_map.add(data);
         }
+        /*
         let datetime = DateTime::<Local>::from(ts);
         print!("{} ", datetime);
-        format.print(packet);
+        */
+        // format.print(packet);
     }
-    println!("{:-^80}", "conn");
-    for (addr, conn) in conn_map.map.into_iter() {
+    println!("{:-^100}", " connections ");
+    for (addr, conn) in conn_map.map.iter() {
+        let (a, b) = conn.ingress_tsrange().unwrap();
+        let da = DateTime::<Local>::from(a);
+        let db = DateTime::<Local>::from(b);
         println!(
-            "{:20} <=> {:20} {:>8}/{}",
+            "{} {:20} <=> {:20} {:>8}/{}",
+            da,
             conn.header.local,
             conn.header.remote,
             conn.ingress_pkts.len(),
             conn.egress_pkts.len()
         );
     }
-
+    println!("{:-^100}", " calls ");
+    let calls = flow::call::extract_calls(conn_map);
+    for c in calls.iter() {
+        let stats = c.compute_stats();
+        println!(
+            "{:20} <=> {:20}  {:10} <=> {:10} delay_usec forward: avg/max/std - backward: avg/max/std",
+            c.peer1.header.remote,
+            c.peer2.header.remote,
+            c.header.peer1_ssrc,
+            c.header.peer2_ssrc
+        );
+        println!("{}  {} {} {:.2} - {} {} {:.2}",
+            " ".repeat(45),
+            stats.peer1_delay.avg,
+            stats.peer1_delay.max,
+            stats.peer1_delay.std,
+            stats.peer2_delay.avg,
+            stats.peer2_delay.max,
+            stats.peer2_delay.std,
+        );
+    }
     Ok(())
 }

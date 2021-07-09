@@ -128,7 +128,7 @@ fn main() -> Result<()> {
         let dea = DateTime::<Local>::from(ea);
         let deb = DateTime::<Local>::from(eb);
         println!(
-            "{} ~ {} {:>4} seconds / {} ~ {} {:>4} seconds:",
+            "Time {} ~ {} {:>4} seconds / {} ~ {} {:>4} seconds:",
             dia.format("%H:%M:%S.%3f"),
             dib.format("%H:%M:%S.%3f"),
             ib.duration_since(ia).unwrap().as_secs(),
@@ -137,7 +137,7 @@ fn main() -> Result<()> {
             eb.duration_since(ea).unwrap().as_secs(),
         );
         println!(
-            "    {:20} <=> {:20} pkts={:>6} / {:<6} ssrc= 0x{:0^8X} / 0x{:0^8X}",
+            "     {:20} <=> {:20} pkts={:>6} / {:<6} ssrc= 0x{:0^8X} / 0x{:0^8X}",
             conn.header.local,
             conn.header.remote,
             conn.ingress_pkts.len(),
@@ -151,8 +151,18 @@ fn main() -> Result<()> {
     let calls = flow::call::extract_calls(&conn_list);
     for c in calls.iter() {
         let stats = c.compute_stats();
+        
+        let (ia, ib) = c.peer1.ingress_tsrange().unwrap();
+        let dia = DateTime::<Local>::from(ia);
+        let dib = DateTime::<Local>::from(ib);
         println!(
-            "{:20} <=> {:20}   ssrc:         0x{:08X} <=> 0x{:08X}",
+            "Time {} ~ {} {:>4} seconds:",
+            dia.format("%H:%M:%S.%3f"),
+            dib.format("%H:%M:%S.%3f"),
+            ib.duration_since(ia).unwrap().as_secs()
+        );
+        println!(
+            "     {:20} <=> {:20}   ssrc:         0x{:08X} <=> 0x{:08X}",
             c.peer1.header.remote,
             c.peer2.header.remote,
             c.header.peer1_ssrc,

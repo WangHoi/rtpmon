@@ -1,6 +1,6 @@
 pub mod connection;
 
-use crate::structs::{ether::Ether, ip::IPHeader, ipv4::IPv4, raw::Raw, udp::UDP, rtp::RTP};
+use crate::structs::{ether::Ether, ip::IPHeader, ipv4::IPv4, raw::Raw, udp::UDP, rtp::RTP, rtcp::RTCP};
 use nom::bitvec::view::AsBits;
 use std::{
     collections::VecDeque,
@@ -33,6 +33,7 @@ pub enum FlowPayload {
     Binary(Vec<u8>),
     Text(String),
     Rtp(RTP),
+    Rtcp(RTCP),
 }
 pub struct FlowData {
     ts: SystemTime,
@@ -65,6 +66,7 @@ pub fn get_flow_data(local_ip: &Ipv4Addr, ts: SystemTime, raw: &Raw) -> Option<F
                 };
                 let (ftype, payload) = match udp {
                     UDP::Rtp(ref rtp) => (FlowType::Rtp, FlowPayload::Rtp(rtp.clone())),
+                    UDP::Rtcp(ref rtcp) => (FlowType::Rtcp, FlowPayload::Rtcp(rtcp.clone())),
                     UDP::Binary(ref p) => (FlowType::Udp, FlowPayload::Binary(p.clone())),
                     UDP::Text(ref t) => (FlowType::Udp, FlowPayload::Text(t.clone())),
                 };

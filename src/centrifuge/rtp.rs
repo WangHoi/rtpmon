@@ -1,6 +1,6 @@
 use std::convert::TryInto;
 
-use crate::structs::{self, CentrifugeError, rtp::RtpHeader, rtp::RtcpHeader};
+use crate::structs::{self, CentrifugeError, rtp::RtpHeader};
 pub fn extract(remaining: &[u8]) -> Result<structs::rtp::RTP, CentrifugeError> {
     if remaining.len() < 12 {
         return Err(structs::CentrifugeError::WrongProtocol);
@@ -39,21 +39,10 @@ pub fn extract(remaining: &[u8]) -> Result<structs::rtp::RTP, CentrifugeError> {
         if remaining.len() < 12 + payload_offset {
             return Err(structs::CentrifugeError::WrongProtocol);    
         }
-        return Ok(structs::rtp::RTP::Rtp(header, remaining[payload_offset..].to_owned()));
-    } else if rtp_payload >= 64 && rtp_payload < 96 {
-        let payload = remaining[1];
-        let header = RtcpHeader {
-            rc: remaining[0] & 0x1f,
-            padding: (remaining[0] >> 5) & 1,
-            version: rtp_version,
-            payload,
-            length: u16::from_be_bytes(remaining[2..4].try_into().unwrap()),
-            ssrc: u32::from_be_bytes(remaining[4..8].try_into().unwrap()),
-        };
-        if remaining.len() < 8 {
-            return Err(structs::CentrifugeError::WrongProtocol);    
-        }
-        return Ok(structs::rtp::RTP::Rtcp(header, remaining[8..].to_owned()));
+        return Ok(structs::rtp::RTP {
+            header, 
+            payload: remaining[payload_offset..].to_owned(),
+        });
     } else {
         return Err(structs::CentrifugeError::WrongProtocol);
     }

@@ -159,15 +159,47 @@ fn main() -> Result<()> {
             c.header.peer2_ssrc
         );
         println!(
-            "{} delay_usec    forward: avg /  max /    std - backward: avg /  max /    std",
+            "{} ingress_flow    forward: lost / max_delta_msec / max_interframe_msec",
             " ".repeat(30)
         );
         println!(
-            "{}                       {:4} / {:4} /  {:5.2} -          {:4} / {:4} / {:5.2}",
+            "{}                      {:7.4}% / {:14} / {:19}",
+            " ".repeat(30),
+            stats.peer1_ingress_flow.lost_rate,
+            stats.peer1_ingress_flow.max_delta / 1000,
+            stats.peer1_ingress_flow.max_inter_frame_delay / 1000
+        );
+        println!(
+            "{} ingress_flow   backward: lost / max_delta_msec / max_interframe_msec",
+            " ".repeat(30)
+        );
+        println!(
+            "{}                      {:7.4}% / {:14} / {:19}",
+            " ".repeat(30),
+            stats.peer2_ingress_flow.lost_rate,
+            stats.peer2_ingress_flow.max_delta / 1000,
+            stats.peer2_ingress_flow.max_inter_frame_delay / 1000
+        );
+
+        println!(
+            "{} delay_usec      forward: avg /  max /    std",
+            " ".repeat(30)
+        );
+        println!(
+            "{}                         {:4} / {:4} /  {:5.2}",
             " ".repeat(30),
             stats.peer1_delay.avg,
             stats.peer1_delay.max,
-            stats.peer1_delay.std,
+            stats.peer1_delay.std
+        );
+
+        println!(
+            "{} delay_usec     backward: avg /  max /    std",
+            " ".repeat(30)
+        );
+        println!(
+            "{}                         {:4} / {:4} /  {:5.2}",
+            " ".repeat(30),
             stats.peer2_delay.avg,
             stats.peer2_delay.max,
             stats.peer2_delay.std,

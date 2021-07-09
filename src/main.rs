@@ -100,45 +100,71 @@ fn main() -> Result<()> {
     drop(tx);
 
     let mut conn_map = flow::connection::ConnectionMap::new();
-    let format = config.format();
     let local_ip = "192.168.6.51".parse().unwrap();
     for (ts, packet) in rx.iter() {
-        if let Some(data) = flow::get_flow_data(&local_ip, ts, &packet) {
+        if let Some(data) = flow::extract_flow_data(&local_ip, ts, &packet) {
             conn_map.add(data);
         }
-        /*
-        let datetime = DateTime::<Local>::from(ts);
-        print!("{} ", datetime);
-        */
-        // format.print(packet);
     }
     println!("{:-^100}", " connections ");
-    for (addr, conn) in conn_map.map.iter() {
-        let (a, b) = conn.ingress_tsrange().unwrap();
-        let da = DateTime::<Local>::from(a);
-        let db = DateTime::<Local>::from(b);
+    let mut conn_list = vec![];
+    for list in conn_map.map.values() {
+        for conn in list.iter() {
+            if conn.valid() {
+                conn_list.push(conn.clone());
+            }
+        }
+    }
+    conn_list.sort_by(|a, b| {
+        let a = a.ingress_tsrange().unwrap().0;
+        let b = b.ingress_tsrange().unwrap().0;
+        a.cmp(&b)
+    });
+    for conn in conn_list.iter() {
+        let (ia, ib) = conn.ingress_tsrange().unwrap();
+        let dia = DateTime::<Local>::from(ia);
+        let dib = DateTime::<Local>::from(ib);
+        let (ea, eb) = conn.egress_tsrange().unwrap();
+        let dea = DateTime::<Local>::from(ea);
+        let deb = DateTime::<Local>::from(eb);
         println!(
-            "{} {:20} <=> {:20} {:>8}/{}",
-            da,
+            "{} ~ {} {:>4} seconds / {} ~ {} {:>4} seconds:",
+            dia.format("%H:%M:%S.%3f"),
+            dib.format("%H:%M:%S.%3f"),
+            ib.duration_since(ia).unwrap().as_secs(),
+            dea.format("%H:%M:%S.%3f"),
+            deb.format("%H:%M:%S.%3f"),
+            eb.duration_since(ea).unwrap().as_secs(),
+        );
+        println!(
+            "    {:20} <=> {:20} pkts={:>6} / {:<6} ssrc= 0x{:0^8X} / 0x{:0^8X}",
             conn.header.local,
             conn.header.remote,
             conn.ingress_pkts.len(),
-            conn.egress_pkts.len()
+            conn.egress_pkts.len(),
+            conn.ingress_ssrc().unwrap(),
+            conn.egress_ssrc().unwrap(),
         );
     }
+
     println!("{:-^100}", " calls ");
-    let calls = flow::call::extract_calls(conn_map);
+    let calls = flow::call::extract_calls(&conn_list);
     for c in calls.iter() {
         let stats = c.compute_stats();
         println!(
-            "{:20} <=> {:20}  {:10} <=> {:10} delay_usec forward: avg/max/std - backward: avg/max/std",
+            "{:20} <=> {:20}   ssrc:         0x{:08X} <=> 0x{:08X}",
             c.peer1.header.remote,
             c.peer2.header.remote,
             c.header.peer1_ssrc,
             c.header.peer2_ssrc
         );
-        println!("{}  {} {} {:.2} - {} {} {:.2}",
-            " ".repeat(45),
+        println!(
+            "{} delay_usec    forward: avg /  max /    std - backward: avg /  max /    std",
+            " ".repeat(30)
+        );
+        println!(
+            "{}                       {:4} / {:4} /  {:5.2} -          {:4} / {:4} / {:5.2}",
+            " ".repeat(30),
             stats.peer1_delay.avg,
             stats.peer1_delay.max,
             stats.peer1_delay.std,

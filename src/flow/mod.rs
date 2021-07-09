@@ -9,20 +9,27 @@ use std::{
     time::SystemTime,
 };
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum FlowType {
     Rtp,
     Rtcp,
     Udp,
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum FlowDirection {
     Ingress,
     Egress,
 }
+#[derive(Clone)]
 pub struct FlowPacket {
     pub ts: SystemTime,
     pub payload: FlowPayload,
+}
+
+impl FlowPacket {
+    pub fn rtp(&self) -> Option<&RTP> {
+        self.payload.rtp()
+    }
 }
 pub struct FlowHeader {
     ftype: FlowType,
@@ -30,11 +37,22 @@ pub struct FlowHeader {
     local: SocketAddr,
     remote: SocketAddr,
 }
+#[derive(Clone)]
 pub enum FlowPayload {
     Binary(Vec<u8>),
     Text(String),
     Rtp(RTP),
     Rtcp(RTCP),
+}
+
+impl FlowPayload {
+    pub fn rtp(&self) -> Option<&RTP> {
+        if let FlowPayload::Rtp(rtp) = self {
+            Some(rtp)
+        } else {
+            None
+        }
+    }
 }
 pub struct FlowData {
     ts: SystemTime,
@@ -42,7 +60,7 @@ pub struct FlowData {
     payload: FlowPayload,
 }
 
-pub fn get_flow_data(local_ip: &Ipv4Addr, ts: SystemTime, raw: &Raw) -> Option<FlowData> {
+pub fn extract_flow_data(local_ip: &Ipv4Addr, ts: SystemTime, raw: &Raw) -> Option<FlowData> {
     if let Raw::Ether(_, ref ether) = raw {
         if let Ether::IPv4(ref v4_hdr, ref v4) = ether {
             if let IPv4::UDP(ref udp_hdr, ref udp) = v4 {

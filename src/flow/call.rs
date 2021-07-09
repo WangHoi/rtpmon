@@ -1,14 +1,12 @@
 use crate::flow::{FlowPayload, FlowType};
 use std::{collections::HashSet, net::SocketAddr};
 
-use super::{
-    connection::{Connection, ConnectionMap},
-    FlowPacket,
-};
+use super::{FlowPacket, connection::{Connection, ConnectionHeader, ConnectionMap}};
 
 pub struct CallHeader {
     pub peer1_ssrc: u32,
     pub peer2_ssrc: u32,
+    // pub conn_headers: Vec<ConnectionHeader>,
 }
 pub struct Call {
     pub header: CallHeader,
@@ -36,56 +34,40 @@ pub struct CallStats {
     pub peer2_delay: DelayStats,
 }
 
-pub fn extract_calls(mut conn_map: ConnectionMap) -> Vec<Call> {
-    let mut mark_set = HashSet::<SocketAddr>::with_capacity(conn_map.map.len());
-    let mut pairs = Vec::with_capacity(conn_map.map.len());
+pub fn extract_calls(conn_list: &Vec<Connection>) -> Vec<Call> {
+    let mut mark_set = HashSet::with_capacity(conn_list.len());
+    let mut pairs = Vec::with_capacity(conn_list.len());
     let mut calls = Vec::new();
-    for (addr1, conn1) in conn_map.map.iter() {
-        if mark_set.contains(addr1) {
+    for (i, conn1) in conn_list.iter().enumerate() {
+        if mark_set.contains(&i) {
             continue;
         }
-        mark_set.insert(*addr1);
-
-        for (addr2, conn2) in conn_map.map.iter() {
-            if mark_set.contains(addr2) {
-                continue;
-            }
-            if conn1.valid()
+        mark_set.insert(i);
+        if i + 1 == conn_list.len() {
+            break;
+        }
+        for (j, conn2) in conn_list[(i + 1)..].iter().enumerate() {
+            assert!(conn1.valid()
                 && conn2.valid()
                 && conn1.header.ftype == conn2.header.ftype
-                && conn1.header.ftype == FlowType::Rtp
-            {
-                if let FlowPayload::Rtp(ref p1) = conn1.ingress_pkts.first().unwrap().payload {
-                    if let FlowPayload::Rtp(ref p2) = conn2.egress_pkts.first().unwrap().payload {
-                        if p1.header.ssrc == p2.header.ssrc {
-                            if let FlowPayload::Rtp(ref q1) =
-                                conn2.ingress_pkts.first().unwrap().payload
-                            {
-                                if let FlowPayload::Rtp(ref q2) =
-                                    conn1.egress_pkts.first().unwrap().payload
-                                {
-                                    if q1.header.ssrc == q2.header.ssrc {
-                                        mark_set.insert(*addr2);
-
-                                        pairs.push((*addr1, *addr2));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                && conn1.header.ftype == FlowType::Rtp);
+            let p1 = conn1.ingress_pkts.first().unwrap().rtp().unwrap();
+            let p2 = conn2.egress_pkts.first().unwrap().rtp().unwrap(); 
+            let q1 = conn2.ingress_pkts.first().unwrap().rtp().unwrap();
+            let q2 = conn1.egress_pkts.first().unwrap().rtp().unwrap(); 
+            if p1.header.ssrc == p2.header.ssrc && q1.header.ssrc == q2.header.ssrc {
+                mark_set.insert(i + 1 + j);
+                pairs.push((conn1, conn2));
             }
         }
     }
-    for (addr1, addr2) in pairs.into_iter() {
-        let conn1 = conn_map.map.remove(&addr1).unwrap();
-        let conn2 = conn_map.map.remove(&addr2).unwrap();
-        let ssrc1 = if let FlowPayload::Rtp(ref p) = conn1.ingress_pkts.first().unwrap().payload {
+    for (peer1, peer2) in pairs.into_iter() {
+        let ssrc1 = if let FlowPayload::Rtp(ref p) = peer1.ingress_pkts.first().unwrap().payload {
             p.header.ssrc
         } else {
             unreachable!()
         };
-        let ssrc2 = if let FlowPayload::Rtp(ref p) = conn2.ingress_pkts.first().unwrap().payload {
+        let ssrc2 = if let FlowPayload::Rtp(ref p) = peer2.ingress_pkts.first().unwrap().payload {
             p.header.ssrc
         } else {
             unreachable!()
@@ -96,8 +78,8 @@ pub fn extract_calls(mut conn_map: ConnectionMap) -> Vec<Call> {
         };
         let c = Call {
             header,
-            peer1: conn1,
-            peer2: conn2,
+            peer1: peer1.clone(),
+            peer2: peer2.clone(),
         };
         calls.push(c);
     }
